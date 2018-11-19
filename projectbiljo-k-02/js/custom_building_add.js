@@ -236,6 +236,10 @@ function uploadDB() {
 		var ad_kel = $("#adkel").val();
 		var ad_kec = $("#adkec").val();
 		var ad_nwst = ad_strt+" RT "+ad_rt+" RW "+ad_rw+", "+ad_kel+", "+ad_kec;
+		var room_counter = [];
+		for (i=1;i<=$("#totflor").val();i++) {
+			room_counter.push($("#rminflr"+i).val());
+		}
 		//upload data to database
 		const dbRefBuild = firebase.database().ref().child("property/"+buildType+"/"+"building_no:"+buildNo);
 		dbRefBuild.set({
@@ -247,6 +251,7 @@ function uploadDB() {
 			coord_longitude : $("#longitude").val(),
 			total_floor: $("#totflor").val(),
 			total_room: $("#totroom").html(),
+			room_count: room_counter,
 			photos: {
 				photo1 : "empty",
 				photo2 : "empty",

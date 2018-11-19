@@ -88,8 +88,22 @@ var table5 = $('#data-table5').DataTable({
 	}]
 })
 
-
-
+//untuk menampilkan photo floor plan
+function addFloorPlan(x){
+	x = parseInt(x);
+	var batas = 1;
+	while(batas<=x){
+		var textx=`<div style="margin-bottom:10px;margin-left:15px" class="pull-left">
+					<label for="flp`+String(batas)+`" class="control-label" style="margin-top:15px">Floor Plan #`+String(batas)+` </label>
+					<span id="flp`+String(batas)+`" name="flp`+String(batas)+`" /></span>
+					</br>
+					<button id="id`+batas+`" type="button" class="btn btn-xs btn-primary" onClick="showPhoto(`+(batas)+`)"><i class="fa fa-share-square-o "></i>Show</button>
+					<a id="id`+batas+`img" href="img/tenant.jpg"></a>
+				</div>`;
+		$("#floorPlan").append(textx);
+		batas=batas+1
+	}
+}
 function addRoom(buildNo) {
 	
 	for(j=1; j<=9; j++) {
@@ -400,6 +414,11 @@ function addExpense(){
 }
 	
 $(document).ready(function() {
+	//start jquery prettyphoto
+	$(".prettyphoto").prettyPhoto({
+		overlay_gallery: false, 
+		social_tools: false
+	})
 	//expense add button listener
 	$("#expenseButton").on('click', function() {
 		$("#modalExpense").modal();
@@ -453,6 +472,9 @@ $(document).ready(function() {
 	$('#buildNo').on('keyup', function (e) {
 		//enter trigger
 		if(e.which === 13){
+			//menghapus floorplan
+			$("#floorPlan").empty();
+			//check
 			var buildno = $(this).val();
 			for(j=1; j<=9; j++) {
 				if (buildno==String(j)) {
@@ -469,8 +491,6 @@ $(document).ready(function() {
 			//define table to work with jquery datatables
 			if (Ref == 1){
 				// change address and total room
-				$("#totalR").html("9")
-				$("#totalR1").html("9")
 				$("#propaddr_s").html("Jl. Skipper No. 15 RT 12 RW 23, Nigga, What");
 				$("#buildNo").html($("#buildNo").val())
 				//input data from database to table
@@ -487,8 +507,6 @@ $(document).ready(function() {
 			}
 			if (Ref == 3){
 				// change address and total room
-				$("#totalR").html("14")
-				$("#totalR1").html("14")
 				$("#propaddr_s").html("GG. H. SIROD NO 16, CIHAMPELAS")
 				$("#buildNo").html($("#buildNo").val())
 				//input data from database to table
@@ -510,15 +528,11 @@ $(document).ready(function() {
 			}
 			if (Ref == 7){
 				// change address and total room
-				$("#totalR").html("0")
-				$("#totalR1").html("0")
 				$("#propaddr_s").html("Jl. Private No. 2 RT 3 RW 4, Yes, No")
 				$("#buildNo").html($("#buildNo").val())
 			}
 			// else
 			if (Ref != 1 && Ref != 3 && Ref != 7){
-				$("#totalR").html("0")
-				$("#totalR1").html("0")
 				$("#propaddr_s").html("NOT FOUND")
 				$("#buildNo").html($("#buildNo").val())
 			}
@@ -534,11 +548,15 @@ $(document).ready(function() {
 			table
 				.clear()
 				.draw();
-			
 			var dbRef0 = firebase.database().ref().child("property/residential/building_no:"+buildno);
 			dbRef0.once('value', function(snapshot) {
 				if (snapshot.child("address_street").val() == null) {
 					$("#propaddr_s").val(null);
+					//jika building tidak ada
+					$("#totalR").html("0")
+					$("#totalR1").html("0")
+					$("#totalF").html("0")
+					$("#totalF1").html("0")	
 					//stop loading icon
 					$("#cover-spin").fadeOut(250, function() {
 						$(this).hide();
@@ -554,6 +572,12 @@ $(document).ready(function() {
 					if (buildList[2].buildid == String(buildno)){
 						$("#propaddr_s").val(buildList[2].address1);
 					}
+					//fill total floor and total room
+					$("#totalR").html(snapshot.child("total_room").val())
+					$("#totalR1").html(snapshot.child("total_room").val())
+					$("#totalF").html(snapshot.child("total_floor").val())
+					$("#totalF1").html(snapshot.child("total_floor").val())
+					addFloorPlan(snapshot.child("total_floor").val())
 					//firebase
 					dbRef0.on('child_added', function(snapshot) {
 						if (snapshot.key.split(":")[0] == "floor") {
@@ -790,6 +814,7 @@ $(document).ready(function() {
 	})
 	//fill array with data from database
 	const dbRefBuild = firebase.database().ref("property/residential");
+
 	dbRefBuild.on('child_added', function(snapshot) {
 		var build_numb = snapshot.key.split(":")[1];
 		var ad_st = snapshot.child("address_street").val();
@@ -814,21 +839,6 @@ $(document).ready(function() {
 				return 1;
 			return 0; //default return value (no sorting)
 		});
-		//stop loading icon
-		$("#cover-spin").fadeOut(250, function() {
-			//collect id from link
-			var refBuild = window.location.href.split('=');
-			if (refBuild[1] == undefined) {
-				//no building number defined
-				document.getElementById('buildNo').value = "1";
-				$("#buildNo").trigger(jQuery.Event('keyup', {which: 13}));
-			} else if (refBuild[1] != "undefined") {
-				//building number defined
-				document.getElementById('buildNo').value = parseInt(refBuild[1]);
-				$("#buildNo").trigger(jQuery.Event('keyup', {which: 13}));
-			}
-			$(this).hide();
-		})
 	});
 	//start property address autocomplete
 	$("#propaddr_s").autocomplete({
@@ -846,8 +856,27 @@ $(document).ready(function() {
 			$("#buildNo").val(ui.item.buildid);
 			$("#buildNo").trigger(jQuery.Event('keyup', {which: 13}));
 		}
+		
 	})
 	
+	//stop loading ketika data sudah di ambil dari firebase
+	dbRefBuild.once('value', function(snapshot) {
+	//stop loading icon
+		$("#cover-spin").fadeOut(250, function() {
+		//collect id from link
+		var refBuild = window.location.href.split('=');
+		if (refBuild[1] == undefined) {
+			//no building number defined
+			document.getElementById('buildNo').value = "1";
+			$("#buildNo").trigger(jQuery.Event('keyup', {which: 13}));
+		} else if (refBuild[1] != "undefined") {
+			//building number defined
+			document.getElementById('buildNo').value = parseInt(refBuild[1]);
+			$("#buildNo").trigger(jQuery.Event('keyup', {which: 13}));
+		}
+		$(this).hide();
+		})
+	})
 	
 	//price listener
 	$('#data-table1 tbody').on('dblclick', '.cptprice', function () {
@@ -892,27 +921,6 @@ $(document).ready(function() {
 		}
 	})
 	
-	// redirect from buildList
-	var link_ = window.location.href.split('#')[1];
-	if (link_=="tenanti"){
-		$("#tenanti").addClass("in active")
-		$("#roomi").removeClass("in active")
-		$("#expensei").removeClass("in active")
-		$("#tabroomi").removeClass("active")
-		$("#tabexpensei").removeClass("active")
-		$("#tabtenanti").addClass("active")
-	}
 	
-	//collect id from link
-	var refBuild = window.location.href.split('=');
-	if (refBuild[1] == undefined) {
-		//no building number defined
-		document.getElementById('buildNo').value = "1";
-		$("#buildNo").trigger(jQuery.Event('keyup', {which: 13}));
-	} else if (refBuild[1] != "undefined") {
-		//building number defined
-		document.getElementById('buildNo').value = parseInt(refBuild[1]);
-		$("#buildNo").trigger(jQuery.Event('keyup', {which: 13}));
-	}
 	
 })
